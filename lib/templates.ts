@@ -46,3 +46,45 @@ export const getOtpTemplate = (code: string, type: "REGISTER" | "PASSWORD_RESET"
     </div>
   `;
 };
+
+export const getInviteTemplate = (senderName: string, snippetTitle: string) => {
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const logoUrl = `${baseUrl}/logo.png`;
+  const inviteUrl = `${baseUrl}/dashboard/invitations`;
+
+  return `
+    <div style="background-color: #050505; padding: 40px 20px; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; text-align: center;">
+      <div style="max-width: 500px; margin: 0 auto; background-color: #0f0d15; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 48px 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.4);">
+        
+        <!-- Logo & Brand -->
+        <div style="margin-bottom: 32px;">
+          <img src="${logoUrl}" alt="RunIt Logo" style="width: 56px; height: 56px; margin-bottom: 16px; border-radius: 12px;" />
+          <h1 style="font-size: 24px; font-weight: 700; color: #ffffff; margin: 0; letter-spacing: -0.02em;">RunIt</h1>
+        </div>
+
+        <!-- Content -->
+        <h2 style="font-size: 20px; font-weight: 600; color: #d0bcff; margin-bottom: 12px; letter-spacing: -0.01em;">Collaboration Invite</h2>
+        <p style="font-size: 15px; line-height: 24px; color: #938f99; margin-bottom: 32px;">
+          <strong style="color: #ffffff;">${senderName}</strong> has invited you to collaborate on the snippet: <br/>
+          <strong style="color: #ffffff; font-family: 'JetBrains Mono', monospace;">"${snippetTitle}"</strong>.
+        </p>
+
+        <!-- Action Button -->
+        <a href="${inviteUrl}" style="display: inline-block; background-color: #d0bcff; color: #23005c; text-decoration: none; font-weight: 700; font-size: 14px; padding: 14px 32px; border-radius: 12px; letter-spacing: 0.5px; margin-bottom: 32px; box-shadow: 0 4px 14px rgba(208,188,255,0.3);">
+          View Invitation
+        </a>
+
+        <p style="font-size: 12px; line-height: 20px; color: #625b71; margin-bottom: 0;">
+          If you don't know this person, you can ignore this email.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top: 32px; text-align: center;">
+        <p style="font-size: 12px; color: #49454f; margin: 0;">
+          &copy; ${new Date().getFullYear()} RunIt. All rights reserved.
+        </p>
+      </div>
+    </div>
+  `;
+};

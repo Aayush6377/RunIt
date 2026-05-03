@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { getOtpTemplate } from "@/lib/templates";
@@ -10,7 +10,7 @@ const otpSchema = z.object({
   type: z.enum(["REGISTER", "PASSWORD_RESET"]),
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const result = otpSchema.safeParse(body);

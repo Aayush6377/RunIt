@@ -10,14 +10,15 @@ import {
   Menu, X, Code2, LayoutDashboard, 
   Sparkles, LogOut, LogIn, User 
 } from "lucide-react";
+import { usePlaygroundStore } from "@/store/usePlaygroundStore";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
-  // Zustand store for UI state
   const { isAuthenticated, user, clearAuth } = useAuthStore();
+  const { resetPlayground } = usePlaygroundStore();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -29,8 +30,9 @@ export default function Navbar() {
   useEffect(() => setIsOpen(false), [pathname]);
 
   const handleSignOut = async () => {
-    clearAuth(); // Clear Zustand
-    await signOut({ callbackUrl: "/" }); // Real NextAuth SignOut
+    clearAuth();
+    resetPlayground();
+    await signOut({ callbackUrl: "/" });
   };
 
   const navLinks = isAuthenticated

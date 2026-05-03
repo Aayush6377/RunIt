@@ -59,6 +59,7 @@ model User {
 
   autoSave        Boolean      @default(true)
   defaultLanguage Language     @default(JAVASCRIPT)
+  theme           String       @default("vs-dark")
   vimMode         Boolean      @default(false)
 
   accounts            Account[]
