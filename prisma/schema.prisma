@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url = env("DATABASE_URL")
+}
+
+enum LoginMethod {
+  GOOGLE
+  GITHUB
+  CREDENTIALS
+}
+
+enum Language {
+  JAVASCRIPT
+  TYPESCRIPT
+  PYTHON
+  JAVA
+  CPP
+  C
+  RUST
+  GO
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+enum Role {
+  EDITOR
+  CO_OWNER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum OtpType {
+  REGISTER
+  PASSWORD_RESET
+}
+
+model User {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  username        String?      @unique
+  name            String?
+  email           String?      @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String? 
+  
+  lastLoginMethod LoginMethod?
+
+  autoSave        Boolean      @default(true)
+  defaultLanguage Language     @default(JAVASCRIPT)
+  vimMode         Boolean      @default(false)
+
+  accounts            Account[]
+  githubTokens        GithubToken[]
+  ownedSnippets       Snippet[]       @relation("OwnedSnippets")
+  collaborations      Collaboration[]
+  sentInvitations     Invitation[]    @relation("SentInvitations")
+  receivedInvitations Invitation[]    @relation("ReceivedInvitations")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GithubToken {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  token        String 
+  githubHandle String?  
+  isDefault    Boolean  @default(false) 
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Snippet {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  title       String     @default("Untitled")
+  language    Language   
+  content     String   
+  
+  visibility  Visibility @default(PRIVATE)
+  shareToken  String?    @unique
+
+  ownerId     String     @db.ObjectId
+  owner       User       @relation("OwnedSnippets", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  revisions      Revision[]
+  collaborators  Collaboration[]
+  invitations    Invitation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Revision {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  snippetId String   @db.ObjectId
+  content   String  
+  message   String? 
+  
+  snippet   Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Collaboration {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  snippetId String   @db.ObjectId
+  userId    String   @db.ObjectId
+  role      Role     @default(EDITOR)
+
+  snippet   Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([snippetId, userId])
+}
+
+model Invitation {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  snippetId   String       @db.ObjectId
+  senderId    String       @db.ObjectId
+  receiverId  String       @db.ObjectId
+  status      InviteStatus @default(PENDING)
+
+  snippet     Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+  sender      User    @relation("SentInvitations", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User    @relation("ReceivedInvitations", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([snippetId, receiverId])
+}
+
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  code      String
+  type      OtpType
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+}

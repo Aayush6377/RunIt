@@ -1,26 +1,91 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@layer base {
+  ::selection {
+    background-color: rgba(208, 188, 255, 0.3);
+    color: #d0bcff;
+    text-shadow: 0 0 8px rgba(208, 188, 255, 0.4);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #37333d #050505;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #050505;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2c2832;
+    border-radius: 8px;
+    border: 2px solid #050505;
+    transition: background-color 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a078ff; 
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: #050505;
+  }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  --color-background: #15121b;
+  --color-surface: #1d1a23;
+  --color-surface-variant: #2c2832;
+  --color-primary: #d0bcff;
+  --color-primary-fixed: #e9ddff;
+  --color-secondary: #fbabff;
+  --color-tertiary: #ffb869;
+  --color-error: #ffb4ab;
+  --color-success: #10b981;
+  --color-on-background: #e7e0ed;
+  --color-on-surface-variant: #cbc3d7;
+  --color-on-primary: #3c0091;
+
+  --font-sans: var(--font-inter), sans-serif;
+  --font-heading: var(--font-space-grotesk), sans-serif;
+  --font-code: var(--font-jetbrains-mono), monospace;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-blink: blink 1s step-end infinite;
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .glass {
+    @apply bg-surface-variant/40 backdrop-blur-md border border-primary/10 transition-all duration-300;
+  }
+  .glass:hover {
+    @apply -translate-y-1 border-primary/30 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(208,188,255,0.05)];
+  }
+  .card-pattern {
+    background-image: radial-gradient(rgba(208, 188, 255, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-on-background;
 }
+
+@layer utilities {
+  .font-mono {
+    font-variant-ligatures: none;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
