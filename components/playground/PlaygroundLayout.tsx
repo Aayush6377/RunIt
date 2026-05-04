@@ -7,6 +7,7 @@ import PlaygroundSettings from "./PlaygroundSettings";
 import HistorySidebar from "./HistorySidebar";
 import { usePlaygroundStore } from "@/store/usePlaygroundStore";
 import { Terminal, MessageSquare } from "lucide-react";
+import AiSidebar from "./AiSidebar";
 
 export default function PlaygroundLayout() {
   const [activeTab, setActiveTab] = useState<"output" | "input">("output");
@@ -14,7 +15,7 @@ export default function PlaygroundLayout() {
   const [mounted, setMounted] = useState(false);
   
   const { 
-    output, userInput, setUserInput, 
+    output, userInput, setUserInput, isAiSidebarOpen,
     isSettingsOpen, isHistoryOpen, terminalPosition 
   } = usePlaygroundStore();
 
@@ -64,6 +65,7 @@ export default function PlaygroundLayout() {
       
       <div className="flex-1 flex overflow-hidden relative">
         {isHistoryOpen && <HistorySidebar />}
+        {isAiSidebarOpen && <AiSidebar/>  }
         
         {isSettingsOpen ? (
           <div className="w-full h-full">

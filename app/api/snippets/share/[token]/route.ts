@@ -7,7 +7,7 @@ export async function GET(req: NextRequest, { params }: Props) {
   try {
     const { token } = await params;
 
-    const snippet = await prisma.snippet.findUnique({
+    const snippet = await prisma.snippet.findFirst({
       where: { shareToken: token },
       include: {
         owner: { select: { name: true, username: true, image: true } },

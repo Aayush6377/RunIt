@@ -98,8 +98,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: "Snippet created successfully", data: { id: snippet.id } }, { status: 201 });
 
-  } catch (e) {
-    console.log(e);
+  } catch {
     return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
   }
 }

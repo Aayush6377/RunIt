@@ -9,6 +9,7 @@ import { getUser } from "@/lib/auth";
 const sendInviteSchema = z.object({
   identifier: z.string().min(1, "Email or username is required"),
   snippetId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid snippet ID"),
+  role: z.enum(["CO_OWNER", "EDITOR", "VIEWER"]),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, message: parsed.error.issues[0].message }, { status: 400 });
     }
 
-    const { identifier, snippetId } = parsed.data;
+    const { identifier, snippetId, role } = parsed.data;
 
     const snippet = await prisma.snippet.findUnique({
       where: { id: snippetId },
@@ -72,12 +73,13 @@ export async function POST(req: NextRequest) {
 
     await prisma.invitation.upsert({
       where: { snippetId_receiverId: { snippetId, receiverId: receiver.id } },
-      update: { status: "PENDING", senderId: sender.id },
+      update: { status: "PENDING", senderId: sender.id, assignedRole: role },
       create: {
         snippetId,
         senderId: sender.id,
         receiverId: receiver.id,
-        status: "PENDING"
+        status: "PENDING",
+        assignedRole: role
       }
     });
 

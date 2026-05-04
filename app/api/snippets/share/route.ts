@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     let newShareToken = snippet.shareToken ? snippet.shareToken : null;
     while (!newShareToken) {
         newShareToken = crypto.randomBytes(16).toString("hex");
-        const existingSnippet = await prisma.snippet.findUnique({ where: { shareToken: newShareToken } });
+        const existingSnippet = await prisma.snippet.findFirst({ where: { shareToken: newShareToken } });
         if (existingSnippet) {
             newShareToken = null;
         }

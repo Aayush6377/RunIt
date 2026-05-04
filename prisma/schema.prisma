@@ -33,6 +33,7 @@ enum Visibility {
 enum Role {
   EDITOR
   CO_OWNER
+  VIEWER
 }
 
 enum InviteStatus {
@@ -44,6 +45,12 @@ enum InviteStatus {
 enum OtpType {
   REGISTER
   PASSWORD_RESET
+}
+
+enum TerminalPosition {
+  LEFT
+  RIGHT
+  BOTTOM
 }
 
 model User {
@@ -59,8 +66,9 @@ model User {
 
   autoSave        Boolean      @default(true)
   defaultLanguage Language     @default(JAVASCRIPT)
-  theme           String       @default("vs-dark")
+  theme           String       @default("runit-midnight")
   vimMode         Boolean      @default(false)
+  terminalPosition TerminalPosition @default(RIGHT)
 
   accounts            Account[]
   githubTokens        GithubToken[]
@@ -111,7 +119,7 @@ model Snippet {
   content     String   
   
   visibility  Visibility @default(PRIVATE)
-  shareToken  String?    @unique
+  shareToken  String?
 
   ownerId     String     @db.ObjectId
   owner       User       @relation("OwnedSnippets", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -152,6 +160,7 @@ model Invitation {
   senderId    String       @db.ObjectId
   receiverId  String       @db.ObjectId
   status      InviteStatus @default(PENDING)
+  assignedRole Role        @default(EDITOR)
 
   snippet     Snippet @relation(fields: [snippetId], references: [id], onDelete: Cascade)
   sender      User    @relation("SentInvitations", fields: [senderId], references: [id], onDelete: Cascade)

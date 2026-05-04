@@ -50,7 +50,7 @@ export async function PATCH(req: Request, { params }: Props) {
     if ((visibility === "UNLISTED" || visibility === "PUBLIC") && !newShareToken) {
       while (!newShareToken) {
         newShareToken = crypto.randomBytes(16).toString("hex");
-        const existingSnippet = await prisma.snippet.findUnique({ where: { shareToken: newShareToken } });
+        const existingSnippet = await prisma.snippet.findFirst({ where: { shareToken: newShareToken } });
         if (existingSnippet) {
           newShareToken = null;
         }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface User {
   id: string;
@@ -12,28 +13,47 @@ interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   lastUsedProvider: string | null;
-  setSession: (user: User | null) => void;
+  hasGithubToken: boolean;
+  
+  setSession: (user: User | null, hasGithubToken?: boolean) => void;
   setLastProvider: (provider: "GOOGLE" | "GITHUB" | "CREDENTIALS") => void;
   clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: false,
-  user: null,
-  lastUsedProvider: typeof window !== 'undefined' ? localStorage.getItem('runit_last_provider') : null,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      isAuthenticated: false,
+      user: null,
+      hasGithubToken: false,
+      lastUsedProvider: typeof window !== 'undefined' ? localStorage.getItem('runit_last_provider') : null,
 
-  setSession: (user) => set({
-    user,
-    isAuthenticated: !!user,
-  }),
+      setSession: (user, hasGithubToken) => set((state) => ({
+        user,
+        isAuthenticated: !!user,
+        hasGithubToken: hasGithubToken !== undefined ? hasGithubToken : state.hasGithubToken
+      })),
 
-  setLastProvider: (provider) => {
-    localStorage.setItem('runit_last_provider', provider);
-    set({ lastUsedProvider: provider });
-  },
+      setLastProvider: (provider) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('runit_last_provider', provider);
+        }
+        set({ lastUsedProvider: provider });
+      },
 
-  clearAuth: () => set({ 
-    user: null, 
-    isAuthenticated: false 
-  }),
-}));
+      clearAuth: () => set({ 
+        user: null, 
+        isAuthenticated: false,
+        hasGithubToken: false
+      }),
+    }),
+    {
+      name: 'runit-auth-storage', 
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
+        hasGithubToken: state.hasGithubToken,
+      }),
+    }
+  )
+);

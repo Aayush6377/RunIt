@@ -24,6 +24,7 @@ interface PlaygroundState {
   theme: string;
   vimMode: boolean;
   autoSave: boolean;
+  isAiSidebarOpen: boolean;
   isSettingsOpen: boolean;
   isHistoryOpen: boolean; 
   visibility: string;
@@ -31,6 +32,7 @@ interface PlaygroundState {
 
   setSnippetId: (id: string | null) => void;
   setLanguage: (langId: string) => void;
+  setAutoSave: (val: boolean) => void;
   setFileName: (name: string) => void;
   setCode: (code: string) => void;
   setUserInput: (input: string) => void;
@@ -38,6 +40,7 @@ interface PlaygroundState {
   setIsExecuting: (val: boolean) => void;
   setTheme: (theme: string) => void;
   setVimMode: (enabled: boolean) => void;
+  setIsAiSidebarOpen: (isOpen: boolean) => void;
   setIsSettingsOpen: (isOpen: boolean) => void;
   setIsHistoryOpen: (isOpen: boolean) => void;
   setVisibility: (vis: string) => void;
@@ -56,9 +59,10 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       output: "",
       isExecuting: false,
       
-      theme: "vs-dark",
+      theme: "runit-midnight",
       vimMode: false,
       autoSave: true,
+      isAiSidebarOpen: false,
       isSettingsOpen: false,
       isHistoryOpen: false,
       visibility: "PRIVATE",
@@ -66,10 +70,12 @@ export const usePlaygroundStore = create<PlaygroundState>()(
 
       setSnippetId: (id) => set({ snippetId: id }),
       setLanguage: (langId) => {
+        langId = langId.toLowerCase();
         const lang = GLOT_LANGUAGES.find((l) => l.id === langId);
         const name = langId === "java" ? "Main" : "main";
         set({ selectedLanguage: langId, code: lang?.defaultCode || "", fileName: name });
       },
+      setAutoSave: (val) => set({ autoSave: val }),
       setFileName: (fileName) => set({ fileName }),
       setCode: (code) => set({ code }),
       setUserInput: (userInput) => set({ userInput }),
@@ -77,8 +83,9 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       setIsExecuting: (isExecuting) => set({ isExecuting }),
       setTheme: (theme) => set({ theme }),
       setVimMode: (vimMode) => set({ vimMode }),
-      setIsSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen, isHistoryOpen: false }),
-      setIsHistoryOpen: (isOpen) => set({ isHistoryOpen: isOpen, isSettingsOpen: false }), 
+      setIsAiSidebarOpen: (isOpen) => set({ isAiSidebarOpen: isOpen, isHistoryOpen: false, isSettingsOpen: false }),
+      setIsSettingsOpen: (isOpen) => set({ isSettingsOpen: isOpen, isHistoryOpen: false, isAiSidebarOpen: false }),
+      setIsHistoryOpen: (isOpen) => set({ isHistoryOpen: isOpen, isSettingsOpen: false, isAiSidebarOpen: false }),
       setVisibility: (vis) => set({ visibility: vis }),
       setTerminalPosition: (pos) => set({ terminalPosition: pos }),
       resetPlayground: () => {

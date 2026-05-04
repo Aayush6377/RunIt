@@ -1,20 +1,24 @@
 "use client";
 import { 
   Play, Save, GitCommit, Copy, Download, Share2, 
-  Settings, Loader2, Check, Lock, Globe, Eye, History, FilePlus
+  Settings, Loader2, Check, Lock, Globe, Eye, History, FilePlus,
+  Sparkles
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { signIn } from "next-auth/react";
 import { usePlaygroundStore, GLOT_LANGUAGES } from "@/store/usePlaygroundStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import ShareModal from "./modals/ShareModal";
 import CommitModal from "./modals/CommitModal";
 import ConfirmModal from "../ui/ConfirmModal"; 
+import { GithubIcon } from "../ui/Icons";
 
 export default function PlaygroundHeader() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hasGithubToken } = useAuthStore();
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
   
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
@@ -24,7 +28,7 @@ export default function PlaygroundHeader() {
     snippetId, selectedLanguage, setLanguage, fileName, setFileName, 
     code, userInput, setOutput, isExecuting, setIsExecuting,
     isSettingsOpen, setIsSettingsOpen, isHistoryOpen, setIsHistoryOpen, visibility,
-    resetPlayground // Import the reset function
+    resetPlayground, isAiSidebarOpen ,setIsAiSidebarOpen
   } = usePlaygroundStore();
 
   const currentLang = GLOT_LANGUAGES.find(l => l.id === selectedLanguage);
@@ -76,6 +80,47 @@ export default function PlaygroundHeader() {
     }
   };
 
+  const handleGithubAction = async () => {
+    if (!hasGithubToken) {
+      toast.loading("Redirecting to GitHub...");
+      signIn("github"); 
+      return;
+    }
+
+    if (!snippetId) return toast.warning("Save snippet before pushing to GitHub!");
+
+    setIsPushing(true);
+    const toastId = toast.loading("Pushing to GitHub Gists...");
+    
+    try {
+      const res = await fetch("/api/github/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          title: `${fileName}.${currentLang?.extension || "txt"}`, 
+          content: code 
+        })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        toast.success("Pushed to GitHub successfully!", {
+          id: toastId,
+          action: {
+            label: "View Gist",
+            onClick: () => window.open(data.data.url, "_blank")
+          }
+        });
+      } else {
+        toast.error(data.message, { id: toastId });
+      }
+    } catch {
+      toast.error("Failed to push to GitHub", { id: toastId });
+    } finally {
+      setIsPushing(false);
+    }
+  };
+
   const handleNewSnippet = () => {
     resetPlayground();
     setNewSnippetModalOpen(false);
@@ -105,7 +150,6 @@ export default function PlaygroundHeader() {
       <ShareModal isOpen={shareModalOpen} onClose={() => setShareModalOpen(false)} />
       <CommitModal isOpen={commitModalOpen} onClose={() => setCommitModalOpen(false)} />
       
-      {/* Confirm Modal for New Snippet */}
       <ConfirmModal 
         isOpen={newSnippetModalOpen} 
         onClose={() => setNewSnippetModalOpen(false)}
@@ -117,17 +161,33 @@ export default function PlaygroundHeader() {
         confirmText="Yes, Start Fresh"
       />
 
-      <div className="h-14 bg-[#0a0a0f] border-b border-white/10 flex items-center justify-between px-2 sm:px-4 shrink-0 overflow-x-auto no-scrollbar">
+      <div className="h-14 bg-[#0a0a0f] border-b border-white/10 flex items-center justify-between px-3 sm:px-4 shrink-0 overflow-x-auto no-scrollbar">
         
         {/* Left Area */}
-        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          
+          {/* Mac-style Window Controls */}
+          <div className="hidden sm:flex items-center gap-2 pr-4 border-r border-white/10 mr-2">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+            <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+            <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
+          </div>
+
+          <button 
+            onClick={() => setIsAiSidebarOpen(!isAiSidebarOpen)} 
+            className={`p-1.5 sm:p-2 rounded transition-colors ${isAiSidebarOpen ? 'text-[#d0bcff] bg-[#d0bcff]/10' : 'text-white/40 hover:text-white hover:bg-white/5'}`} 
+            title="RunIt AI Assistant"
+          >
+            <Sparkles size={18} />
+          </button>
+
           {snippetId && (
             <button onClick={() => setIsHistoryOpen(!isHistoryOpen)} className={`p-1.5 sm:p-2 rounded transition-colors ${isHistoryOpen ? 'text-[#d0bcff] bg-[#d0bcff]/10' : 'text-white/40 hover:text-white hover:bg-white/5'}`} title="Revision History">
               <History size={18} />
             </button>
           )}
 
-          <div className="flex items-center bg-white/5 border border-white/10 rounded px-2 py-1 focus-within:border-[#d0bcff]/50">
+          <div className="flex items-center bg-white/5 border border-white/10 rounded px-2 py-1 focus-within:border-[#d0bcff]/50 transition-colors">
             <input value={fileName} onChange={(e) => setFileName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} className="bg-transparent text-xs sm:text-sm font-mono text-white outline-none w-16 sm:w-24 text-right" />
             <span className="text-xs sm:text-sm font-mono text-[#d0bcff]/60">.{currentLang?.extension}</span>
           </div>
@@ -157,9 +217,8 @@ export default function PlaygroundHeader() {
 
           {isAuthenticated && (
             <>
-              {/* New Snippet Button */}
               <button onClick={() => setNewSnippetModalOpen(true)} className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white px-2 py-1.5 rounded hover:bg-white/5">
-                <FilePlus size={16} /> <span className="hidden md:inline">New</span>
+                <FilePlus size={16} /> <span className="hidden lg:inline">New</span>
               </button>
 
               <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white px-2 py-1.5 rounded hover:bg-white/5">
@@ -167,11 +226,21 @@ export default function PlaygroundHeader() {
               </button>
               
               <button onClick={() => snippetId ? setShareModalOpen(true) : toast.warning("Save snippet first!")} className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white px-2 py-1.5 rounded hover:bg-white/5">
-                <Share2 size={16} /> <span className="hidden md:inline">Share</span>
+                <Share2 size={16} /> <span className="hidden lg:inline">Share</span>
               </button>
               
               <button onClick={() => snippetId ? setCommitModalOpen(true) : toast.warning("Save snippet first!")} className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-[#d0bcff] px-2 py-1.5 rounded hover:bg-[#d0bcff]/10">
                 <GitCommit size={16} /> <span className="hidden lg:inline">Commit</span>
+              </button>
+
+              {/* GitHub Button */}
+              <button 
+                onClick={handleGithubAction} 
+                disabled={isPushing}
+                className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded transition-colors ${hasGithubToken ? 'text-white/60 hover:text-white hover:bg-white/5' : 'bg-white text-black hover:bg-white/90'}`}
+              >
+                {isPushing ? <Loader2 size={16} className="animate-spin" /> : <GithubIcon size={16} />}
+                <span className="hidden xl:inline">{hasGithubToken ? "Push" : "Connect GitHub"}</span>
               </button>
             </>
           )}
@@ -181,7 +250,7 @@ export default function PlaygroundHeader() {
           </button>
 
           <button disabled={isExecuting} onClick={handleRun} className="h-8 sm:h-9 bg-[#d0bcff] text-[#23005c] px-4 sm:px-6 rounded-lg flex items-center gap-2 font-bold text-xs disabled:opacity-50 ml-1 sm:ml-2">
-            {isExecuting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />} {isExecuting ? "RUNNING" : "RUN"}
+            {isExecuting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} fill="currentColor" />} <span className="hidden sm:inline">{isExecuting ? "RUNNING" : "RUN"}</span>
           </button>
         </div>
       </div>
