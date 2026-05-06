@@ -87,3 +87,51 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    const { user, error } = await getUser();
+    if (error || !user) {
+      return NextResponse.json({ success: false, message: error || "Unauthorized" }, { status: 401 });
+    }
+
+    const userSnippets = await prisma.snippet.findMany({
+      where: { ownerId: user.id },
+      include: { collaborators: true }
+    });
+
+    await prisma.$transaction(async (tx) => {
+
+      for (const snippet of userSnippets) {
+        const coOwner = snippet.collaborators.find(c => c.role === "CO_OWNER");
+        
+        if (coOwner) {
+
+          await tx.snippet.update({
+            where: { id: snippet.id },
+            data: { ownerId: coOwner.userId }
+          });
+
+          await tx.collaboration.delete({ where: { id: coOwner.id } });
+        } else {
+          await tx.snippet.delete({ where: { id: snippet.id } });
+        }
+      }
+
+      await tx.invitation.deleteMany({
+        where: { OR: [{ senderId: user.id }, { receiverId: user.id }] }
+      });
+
+      await tx.user.delete({ where: { id: user.id } });
+    }, { timeout: 60_000 }); // 60 seconds
+
+    if (user.image) {
+      await deleteImage(user.image); 
+    }
+
+    return NextResponse.json({ success: true, message: "Account deleted successfully" }, { status: 200 });
+
+  } catch {
+    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
+  }
+}

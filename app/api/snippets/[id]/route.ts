@@ -85,8 +85,11 @@ export async function PUT(req: NextRequest, { params }: Props) {
     let dataToUpdate = parsedData.data;
 
     if (isEditor && !isOwner && !isCoOwner) {
-      const attemptedKeys = Object.keys(dataToUpdate);
-      const isTryingToChangeMetadata = attemptedKeys.some(key => key !== 'content' && dataToUpdate[key as keyof typeof dataToUpdate] !== undefined);
+      const isTryingToChangeMetadata = 
+        (dataToUpdate.title !== undefined && dataToUpdate.title !== existingSnippet.title) ||
+        (dataToUpdate.fileName !== undefined && dataToUpdate.fileName !== existingSnippet.fileName) ||
+        (dataToUpdate.language !== undefined && dataToUpdate.language !== existingSnippet.language) ||
+        (dataToUpdate.visibility !== undefined && dataToUpdate.visibility !== existingSnippet.visibility);
 
       if (isTryingToChangeMetadata) {
          return NextResponse.json({ 

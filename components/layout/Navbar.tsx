@@ -2,13 +2,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signIn, signOut } from "next-auth/react"; // Real Auth APIs
+import { signOut } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import Logo from "@/components/ui/Logo";
 import { 
   Menu, X, Code2, LayoutDashboard, 
-  Sparkles, LogOut, LogIn, User 
+  Sparkles, LogOut, LogIn, User, 
+  FolderCode, Mail, Info
 } from "lucide-react";
 import { usePlaygroundStore } from "@/store/usePlaygroundStore";
 
@@ -37,12 +38,15 @@ export default function Navbar() {
 
   const navLinks = isAuthenticated
     ? [
-        { name: "Playground", href: "/playground", icon: Code2 },
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Playground", href: "/playground", icon: Code2 },
+        { name: "Snippets", href: "/snippets", icon: FolderCode },
+        { name: "Invitations", href: "/invitations", icon: Mail },
       ]
     : [
         { name: "Playground", href: "/playground", icon: Code2 },
         { name: "Features", href: "/#features", icon: Sparkles },
+        { name: "About", href: "/about", icon: Info },
       ];
 
   return (
@@ -67,10 +71,10 @@ export default function Navbar() {
               key={link.name} 
               href={link.href}
               className={`flex items-center gap-2 text-sm font-medium transition-colors group ${
-                pathname === link.href ? "text-primary" : "text-on-surface-variant hover:text-primary"
+                pathname.startsWith(link.href) && link.href !== "/" ? "text-[#d0bcff]" : "text-on-surface-variant hover:text-[#d0bcff]"
               }`}
             >
-              <link.icon size={16} className={pathname === link.href ? "text-primary" : "group-hover:text-primary transition-colors"} />
+              <link.icon size={16} className={pathname.startsWith(link.href) && link.href !== "/" ? "text-[#d0bcff]" : "group-hover:text-[#d0bcff] transition-colors"} />
               {link.name}
             </Link>
           ))}
@@ -80,22 +84,21 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           {isAuthenticated && user ? (
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                {user.image ? (
-                  <img 
-                    src={user.image} 
-                    alt={user.name} 
-                    className="w-7 h-7 rounded-full border border-primary/20"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User size={14} className="text-primary" />
-                  </div>
-                )}
-                <span className="text-sm font-medium text-white mr-1">
+              {/* Clickable Profile Badge */}
+              <Link 
+                href="/profile"
+                className="flex items-center gap-3 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/10 transition-colors group"
+              >
+                <img 
+                  src={user.image || `https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} 
+                  alt={user.name} 
+                  className="w-7 h-7 rounded-full border border-[#d0bcff]/20 bg-[#d0bcff]/10 group-hover:border-[#d0bcff]/50 transition-colors"
+                />
+                <span className="text-sm font-medium text-white mr-1 group-hover:text-[#d0bcff] transition-colors">
                   {user.name?.split(" ")[0]}
                 </span>
-              </div>
+              </Link>
+
               <button 
                 onClick={handleSignOut}
                 className="p-2 text-on-surface-variant hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
@@ -108,13 +111,13 @@ export default function Navbar() {
             <>
               <Link 
                 href="/login" 
-                className="flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-on-surface-variant hover:text-[#d0bcff] transition-colors"
               >
                 <LogIn size={16} /> Sign In
               </Link>
               <Link 
                 href="/register" 
-                className="bg-primary text-[#23005c] px-5 py-2.5 rounded-lg hover:bg-[#b59cfc] transition-all duration-300 font-bold text-sm shadow-[0_0_15px_rgba(208,188,255,0.2)] hover:shadow-[0_0_25px_rgba(208,188,255,0.4)]"
+                className="bg-[#d0bcff] text-[#23005c] px-5 py-2.5 rounded-lg hover:bg-[#b59cfc] transition-all duration-300 font-bold text-sm shadow-[0_0_15px_rgba(208,188,255,0.2)] hover:shadow-[0_0_25px_rgba(208,188,255,0.4)]"
               >
                 Get Started
               </Link>
@@ -125,7 +128,7 @@ export default function Navbar() {
         {/* Mobile Menu Toggle */}
         <button 
           onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden p-2 text-on-surface-variant hover:text-primary transition-colors z-50"
+          className="md:hidden p-2 text-on-surface-variant hover:text-[#d0bcff] transition-colors z-50"
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
@@ -138,16 +141,20 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-white/10 bg-[#0f0d15]/95 backdrop-blur-2xl overflow-hidden"
+            className="md:hidden border-b border-white/10 bg-[#0f0d15]/95 backdrop-blur-2xl overflow-hidden shadow-2xl"
           >
             <div className="flex flex-col px-6 py-6 gap-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 text-white font-medium"
+                  className={`flex items-center gap-3 p-3 rounded-lg font-medium transition-colors ${
+                    pathname.startsWith(link.href) && link.href !== "/" 
+                      ? "bg-[#d0bcff]/10 text-[#d0bcff]" 
+                      : "hover:bg-white/5 text-white"
+                  }`}
                 >
-                  <link.icon size={20} className="text-primary" />
+                  <link.icon size={20} className={pathname.startsWith(link.href) && link.href !== "/" ? "text-[#d0bcff]" : "text-white/50"} />
                   {link.name}
                 </Link>
               ))}
@@ -156,22 +163,24 @@ export default function Navbar() {
 
               {isAuthenticated && user ? (
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/5">
-                    {user.image ? (
-                      <img src={user.image} alt={user.name} className="w-10 h-10 rounded-full bg-primary/10" />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
-                        <User size={14} className="text-primary" />
-                      </div>
-                    )}
+                  {/* Clickable Mobile Profile Badge */}
+                  <Link 
+                    href="/profile"
+                    className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-lg border border-white/5 transition-colors"
+                  >
+                    <img 
+                      src={user.image || `https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} 
+                      alt={user.name} 
+                      className="w-10 h-10 rounded-full bg-[#d0bcff]/10 border border-[#d0bcff]/20" 
+                    />
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-white">{user.name}</span>
-                      <span className="text-xs text-on-surface-variant">{user.email}</span>
+                      <span className="text-xs text-on-surface-variant">View Profile</span>
                     </div>
-                  </div>
+                  </Link>
                   <button 
                     onClick={handleSignOut}
-                    className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-red-400/10 text-red-400 font-medium"
+                    className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-red-400/10 hover:bg-red-400/20 text-red-400 font-medium transition-colors"
                   >
                     <LogOut size={18} /> Sign Out
                   </button>
@@ -180,13 +189,13 @@ export default function Navbar() {
                 <div className="flex flex-col gap-3">
                   <Link 
                     href="/login"
-                    className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-white/5 text-white font-medium"
+                    className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
                   >
                     <User size={18} /> Sign In
                   </Link>
                   <Link 
                     href="/register"
-                    className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-primary text-[#23005c] font-bold"
+                    className="flex items-center justify-center gap-2 w-full p-3 rounded-lg bg-[#d0bcff] hover:bg-[#b59cfc] text-[#23005c] font-bold transition-colors"
                   >
                     <Code2 size={18} /> Get Started Free
                   </Link>

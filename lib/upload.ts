@@ -21,14 +21,19 @@ export async function deleteImage(imageUrl: string) {
   try {
     if (!imageUrl.includes("cloudinary.com")) return;
 
-    const urlParts = imageUrl.split("/");
-    const filenameWithExt = urlParts[urlParts.length - 1];
-    const folderName = urlParts[urlParts.length - 2];
-    
-    const filename = filenameWithExt.split(".")[0];
-    const publicId = `${folderName}/${filename}`;
+    const urlParts = imageUrl.split("/upload/");
+    if (urlParts.length < 2) return;
+
+    let path = urlParts[1];
+
+    if (path.match(/^v\d+\//)) {
+      path = path.split("/").slice(1).join("/"); 
+    }
+
+    const publicId = path.split(".")[0];
 
     await cloudinary.uploader.destroy(publicId);
+    
   } catch (error) {
     console.error("Cloudinary Delete Error:", error);
   }
