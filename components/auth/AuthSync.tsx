@@ -9,7 +9,13 @@ export default function AuthSync() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      setSession(session.user);
+      setSession({
+        id: (session.user as any).id,
+        name: session.user.name ?? "",
+        email: session.user.email ?? "",
+        image: session.user.image ?? "",
+        username: (session.user as any).username || undefined,
+      });
     } else if (status === "unauthenticated") {
       setSession(null);
     }

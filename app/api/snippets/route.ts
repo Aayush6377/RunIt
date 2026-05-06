@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { Language, Visibility } from "@prisma/client";
+import { Language, Role, Visibility } from "@prisma/client";
 import { getUser } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {

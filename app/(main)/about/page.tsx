@@ -1,12 +1,23 @@
 "use client";
 import { GithubIcon } from "@/components/ui/Icons";
 import { GITHUB_LINK, LINKEDIN_LINK, PORTFOLIO_LINK } from "@/lib/constants";
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Globe, Code2, Terminal, Cpu, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-const LinkedinIcon = ({ size = 20 }: { size?: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+const LinkedinIcon = ({ size = 20, className }: { size?: number; className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    className={className}
+  >
     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
     <rect x="2" y="9" width="4" height="12"></rect>
     <circle cx="4" cy="4" r="2"></circle>
@@ -14,8 +25,7 @@ const LinkedinIcon = ({ size = 20 }: { size?: number }) => (
 );
 
 export default function AboutPage() {
-  // Animation Variants
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -23,9 +33,13 @@ export default function AboutPage() {
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100 } }
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      transition: { type: "spring", stiffness: 100 } 
+    }
   };
 
   return (
