@@ -13,16 +13,21 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     
-    const roleFilter = searchParams.get("role") || "all";
+    const roleFilter = searchParams.get("role")?.toUpperCase() || "ALL";
     const searchFilter = searchParams.get("search") || "";
-    const languageFilter = searchParams.get("language");
+    const languageFilter = searchParams.get("language")?.toUpperCase() || "ALL";
+    const visibilityFilter = searchParams.get("visibility")?.toUpperCase() || "ALL";
+    
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "9");
+    const skip = (page - 1) * limit;
 
     const whereClause: any = {};
 
-    if (roleFilter === "owner") {
+    if (roleFilter === "OWNER") {
       whereClause.ownerId = user.id;
-    } else if (roleFilter === "editor") {
-      whereClause.collaborators = { some: { userId: user.id } };
+    } else if (["CO_OWNER", "EDITOR", "VIEWER"].includes(roleFilter)) {
+      whereClause.collaborators = { some: { userId: user.id, role: roleFilter as Role } };
     } else {
       whereClause.OR = [
         { ownerId: user.id },
@@ -31,32 +36,53 @@ export async function GET(req: NextRequest) {
     }
 
     if (searchFilter) {
-      whereClause.title = {
-        contains: searchFilter,
-        mode: "insensitive",
-      };
+      whereClause.title = { contains: searchFilter, mode: "insensitive" };
     }
 
-    if (languageFilter && Object.values(Language).includes(languageFilter as Language)) {
+    if (languageFilter !== "ALL" && Object.values(Language).includes(languageFilter as Language)) {
       whereClause.language = languageFilter as Language;
     }
 
-    const snippets = await prisma.snippet.findMany({
-      where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        owner: {
-          select: { name: true, username: true, image: true }
-        },
-        collaborators: {
-          include: {
-            user: { select: { name: true, username: true, image: true } }
+    if (visibilityFilter !== "ALL" && Object.values(Visibility).includes(visibilityFilter as Visibility)) {
+      whereClause.visibility = visibilityFilter as Visibility;
+    }
+
+    // Fetch data and calculate stats in parallel
+    const [totalCount, snippets, totalOwned, totalShared] = await Promise.all([
+      prisma.snippet.count({ where: whereClause }),
+      prisma.snippet.findMany({
+        where: whereClause,
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          owner: { select: { id: true, name: true, username: true, image: true } },
+          collaborators: {
+            include: { user: { select: { id: true, name: true, username: true, image: true } } }
           }
         }
-      }
-    });
+      }),
+      prisma.snippet.count({ where: { ownerId: user.id } }), 
+      prisma.snippet.count({ where: { collaborators: { some: { userId: user.id } } } }) 
+    ]);
 
-    return NextResponse.json({ success: true, data: snippets }, { status: 200 });
+    return NextResponse.json({ 
+      success: true, 
+      data: snippets,
+      meta: {
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit) || 1,
+        },
+        stats: {
+          totalOwned,
+          totalShared,
+          totalCombined: totalOwned + totalShared
+        }
+      }
+    }, { status: 200 });
 
   } catch {
     return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
@@ -65,9 +91,10 @@ export async function GET(req: NextRequest) {
 
 const createSnippetSchema = z.object({
   title: z.string().min(1, "Title cannot be empty").default("Untitled"),
+  fileName: z.string().min(1, "Filename cannot be empty").default("main"),
   language: z.nativeEnum(Language),
   content: z.string().default(""),
-  visibility: z.nativeEnum(Visibility).default("PRIVATE"),
+  visibility: z.nativeEnum(Visibility).default("PUBLIC"),
 });
 
 export async function POST(req: NextRequest) {
@@ -84,11 +111,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: parsedData.error.issues[0].message }, { status: 400 });
     }
 
-    const { title, language, content, visibility } = parsedData.data;
+    const { title, fileName, language, content, visibility } = parsedData.data;
 
     const snippet = await prisma.snippet.create({
       data: {
         title,
+        fileName,
         language,
         content,
         visibility,

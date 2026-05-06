@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, X, Send, Bot, User, Code2, Check, ArrowDownToLine } from "lucide-react";
+import { Sparkles, X, Send, Bot, User, Code2, Check, ArrowDownToLine, MessageSquarePlus } from "lucide-react";
 import { usePlaygroundStore } from "@/store/usePlaygroundStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
@@ -11,43 +11,36 @@ interface Message {
 }
 
 export default function AiSidebar() {
-  const { isAiSidebarOpen, setIsAiSidebarOpen, code, setCode, selectedLanguage, output } = usePlaygroundStore();
+  const { isAiSidebarOpen, setIsAiSidebarOpen, code, setCode, selectedLanguage, output, snippetId } = usePlaygroundStore();
   const { user } = useAuthStore();
   
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("runit_ai_messages");
-      if (saved) return JSON.parse(saved);
-    }
-    return [{ role: "ai", content: `Hi! I'm RunIt AI. I see you're writing in ${selectedLanguage.toUpperCase()}. How can I help?` }];
-  });
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "ai", content: `Hi! I'm RunIt AI. I see you're writing in ${selectedLanguage.toUpperCase()}. How can I help?` }
+  ]);
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Track previous language and user to detect changes
   const prevLang = useRef(selectedLanguage);
   const prevUserId = useRef(user?.id);
+  const prevSnippetId = useRef(snippetId);
 
-  // Watch for Language Changes or Login/Logout
   useEffect(() => {
-    if (prevLang.current !== selectedLanguage || prevUserId.current !== user?.id) {
+    const isLanguageChange = prevLang.current !== selectedLanguage;
+    const isUserChange = prevUserId.current !== user?.id;
+    
+    const isProjectSwitch = prevSnippetId.current !== null && prevSnippetId.current !== snippetId;
+
+    if (isLanguageChange || isUserChange || isProjectSwitch) {
       setMessages([{ role: "ai", content: `Hi! I'm RunIt AI. I see you're writing in ${selectedLanguage.toUpperCase()}. How can I help?` }]);
-      sessionStorage.removeItem("runit_ai_messages");
-      
-      // Update trackers
-      prevLang.current = selectedLanguage;
-      prevUserId.current = user?.id;
     }
-  }, [selectedLanguage, user?.id]);
 
-  // Save to session storage whenever messages change
-  useEffect(() => {
-    sessionStorage.setItem("runit_ai_messages", JSON.stringify(messages));
-  }, [messages]);
+    prevLang.current = selectedLanguage;
+    prevUserId.current = user?.id;
+    prevSnippetId.current = snippetId;
+  }, [selectedLanguage, user?.id, snippetId]);
 
-  // Safe scrolling
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -57,7 +50,10 @@ export default function AiSidebar() {
     }
   }, [messages, isLoading, isAiSidebarOpen]);
 
-  if (!isAiSidebarOpen) return null;
+  const handleNewChat = () => {
+    setMessages([{ role: "ai", content: `Hi! I'm RunIt AI. I see you're writing in ${selectedLanguage.toUpperCase()}. How can I help?` }]);
+    toast.success("Started a new chat!");
+  };
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -105,14 +101,14 @@ export default function AiSidebar() {
           <div key={index} className="my-3 rounded-lg overflow-hidden border border-white/10 bg-[#0a0a0f] shadow-lg">
             <div className="flex items-center justify-between px-3 py-1.5 bg-white/5 border-b border-white/5">
               <div className="flex items-center gap-1.5">
-                <Code2 size={12} className="text-[#d0bcff]/70" />
+                <Code2 className="text-[#d0bcff]/70" size={12}/>
                 <span className="text-[10px] font-mono text-white/50 uppercase">Suggested Code</span>
               </div>
               <button 
                 onClick={() => handleApplyCode(codeString)}
                 className="flex items-center gap-1.5 text-[10px] font-bold text-[#d0bcff] hover:text-white bg-[#d0bcff]/10 hover:bg-[#d0bcff]/20 px-2 py-1 rounded transition-colors"
               >
-                <ArrowDownToLine size={12} /> Replace
+                <ArrowDownToLine size={12}/> Replace
               </button>
             </div>
             <div className="p-3 overflow-x-auto text-[11px] font-mono text-white/80 whitespace-pre">
@@ -130,20 +126,31 @@ export default function AiSidebar() {
   };
 
   return (
-    <div className="w-[340px] h-full bg-[#110e15] border-r border-white/5 flex flex-col flex-shrink-0 shadow-2xl relative z-20">
+    <div className={`w-[340px] h-full bg-[#110e15] border-r border-white/5 flex flex-col flex-shrink-0 shadow-2xl relative z-20 ${!isAiSidebarOpen ? 'hidden' : ''}`}>
       
       {/* Sidebar Header */}
-      <div className="h-14 border-b border-white/5 flex items-center justify-end px-4 bg-white/[0.02] shrink-0">
-        <h3 className="font-semibold text-white/90 flex items-center gap-1.5 text-xs absolute left-1/2 -translate-x-1/2">
-          <Sparkles size={14} className="text-[#d0bcff]" /> 
+      <div className="h-14 border-b border-white/5 flex items-center justify-between px-4 bg-white/[0.02] shrink-0">
+        <h3 className="font-semibold text-white/90 flex items-center gap-1.5 text-xs">
+          <Sparkles className="text-[#d0bcff]" size={14}/> 
           RunIt AI
         </h3>
-        <button 
-          onClick={() => setIsAiSidebarOpen(false)} 
-          className="text-white/40 hover:text-white transition-colors p-1"
-        >
-          <X size={16} />
-        </button>
+        
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={handleNewChat} 
+            className="text-white/40 hover:text-white transition-colors p-1.5 rounded-md hover:bg-white/5"
+            title="New Chat"
+          >
+            <MessageSquarePlus size={15}/>
+          </button>
+          <button 
+            onClick={() => setIsAiSidebarOpen(false)} 
+            className="text-white/40 hover:text-white transition-colors p-1.5 rounded-md hover:bg-white/5"
+            title="Close Sidebar"
+          >
+            <X size={16}/>
+          </button>
+        </div>
       </div>
 
       {/* Chat History */}
@@ -157,15 +164,14 @@ export default function AiSidebar() {
             <div className={`flex items-center gap-2 mb-1.5 px-1 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
               {msg.role === "ai" ? (
                 <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#23005c] to-[#d0bcff] flex items-center justify-center shadow-md shrink-0">
-                  <Bot size={12} className="text-white" />
+                  <Bot className="text-white" size={12}/>
                 </div>
               ) : (
-                // Dynamic User Image Logic
                 user?.image ? (
                   <img src={user.image} alt="User" className="w-6 h-6 rounded-full border border-white/10 shrink-0 object-cover" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shrink-0">
-                    <User size={12} className="text-white/70" />
+                    <User className="text-white/70" size={12}/>
                   </div>
                 )
               )}
@@ -190,7 +196,7 @@ export default function AiSidebar() {
           <div className="flex flex-col items-start">
              <div className="flex items-center gap-2 mb-1.5 px-1">
                 <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#23005c] to-[#d0bcff] flex items-center justify-center shadow-md animate-pulse shrink-0">
-                  <Bot size={12} className="text-white" />
+                  <Bot className="text-white" size={12}/>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Thinking...</span>
              </div>
@@ -221,7 +227,7 @@ export default function AiSidebar() {
             disabled={!input.trim() || isLoading}
             className="m-0.5 w-8 h-8 flex items-center justify-center bg-[#d0bcff] text-[#23005c] rounded-xl disabled:opacity-50 hover:bg-[#b59cfc] transition-colors shrink-0 shadow-md"
           >
-            <Send size={14} className="ml-0.5" />
+            <Send className="ml-0.5" size={14}/>
           </button>
         </form>
         <p className="text-[9px] text-center text-white/30 mt-3 font-medium">

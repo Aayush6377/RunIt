@@ -115,10 +115,11 @@ model Account {
 model Snippet {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
   title       String     @default("Untitled")
+  fileName    String     @default("main")
   language    Language   
   content     String   
   
-  visibility  Visibility @default(PRIVATE)
+  visibility  Visibility @default(PUBLIC)
   shareToken  String?
 
   ownerId     String     @db.ObjectId

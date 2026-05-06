@@ -15,13 +15,21 @@ export default function PlaygroundBackground() {
   ];
 
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+    <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-[#050505]">
       
-      {/* Floating Code Icons */}
+      {/* Top Left Glow */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#d0bcff]/15 rounded-full blur-[120px] animate-pulse" />
+      
+      {/* Bottom Right Glow */}
+      <div className="absolute bottom-[-5%] right-[-5%] w-[40%] h-[40%] bg-[#7c4dff]/20 rounded-full blur-[100px]" />
+      
+      {/* Center Subtle Glow */}
+      <div className="absolute top-[30%] right-[15%] w-[25%] h-[25%] bg-[#d0bcff]/15 rounded-full blur-[80px]" />
+      
       {floatingIcons.map((item, index) => (
         <motion.div
           key={index}
-          className="absolute text-white/10"
+          className="absolute text-white/15" 
           style={{ top: item.top, left: item.left }}
           animate={{
             y: [0, -20, 0],
@@ -37,7 +45,8 @@ export default function PlaygroundBackground() {
           <item.Icon size={item.size} strokeWidth={1.5} />
         </motion.div>
       ))}
-      
+
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.05] [mask-image:linear-gradient(180deg,white,transparent)]" />
     </div>
   );
 }

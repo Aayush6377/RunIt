@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Invitation already sent to this user" }, { status: 400 });
     }
 
-    await prisma.invitation.upsert({
+    const invitation = await prisma.invitation.upsert({
       where: { snippetId_receiverId: { snippetId, receiverId: receiver.id } },
       update: { status: "PENDING", senderId: sender.id, assignedRole: role },
       create: {
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (receiver.email) {
-      const html = getInviteTemplate(sender.name || sender.username || "Someone", snippet.title);
+      const html = getInviteTemplate(sender.name || sender.username || "Someone", snippet.title, invitation.id);
       await sendEmail(receiver.email, "You've been invited to collaborate!", html);
     }
 

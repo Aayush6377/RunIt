@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth";
+import { Role } from "@prisma/client";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -79,25 +80,30 @@ export async function POST(req: NextRequest, { params }: Props) {
     }
 
     const isOwner = user.id === snippet.ownerId;
-    const isCollaborator = snippet.collaborators.some(c => c.userId === user.id);
+    const userCollab = snippet.collaborators.find(c => c.userId === user.id);
+    const isCoOwner = userCollab?.role === Role.CO_OWNER;
+    const isEditor = userCollab?.role === Role.EDITOR;
 
-    if (!isOwner && !isCollaborator) {
-      return NextResponse.json({ success: false, message: "You do not have permission to commit changes to this snippet" }, { status: 403 });
+    if (!isOwner && !isCoOwner && !isEditor) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "You do not have permission to commit changes" 
+      }, { status: 403 });
     }
 
-    await prisma.snippet.update({
-      where: { id },
-      data: {
-        content: parsedData.data.content,
-      }
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.snippet.update({
+        where: { id },
+        data: { content: parsedData.data.content }
+      });
 
-    await prisma.revision.create({
-      data: {
-        snippetId: id,
-        content: parsedData.data.content,
-        message: parsedData.data.message,
-      }
+      await tx.revision.create({
+        data: {
+          snippetId: id,
+          content: parsedData.data.content,
+          message: parsedData.data.message,
+        }
+      });
     });
 
     return NextResponse.json({ success: true, message: "Code committed successfully" }, { status: 201 });

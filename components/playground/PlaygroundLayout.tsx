@@ -1,33 +1,106 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { Panel, Group, Separator } from "react-resizable-panels";
 import PlaygroundHeader from "./PlaygroundHeader";
 import CodeEditor from "./CodeEditor";
 import PlaygroundSettings from "./PlaygroundSettings";
 import HistorySidebar from "./HistorySidebar";
 import { usePlaygroundStore } from "@/store/usePlaygroundStore";
-import { Terminal, MessageSquare } from "lucide-react";
+import { Terminal, MessageSquare, Loader2 } from "lucide-react";
 import AiSidebar from "./AiSidebar";
+import { toast } from "sonner";
 
-export default function PlaygroundLayout() {
+function PlaygroundContent() {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  
+  // Extract URL parameters
+  const snippetIdParam = params?.snippetId as string;
+  const cloneToken = searchParams?.get("clone");
+
   const [activeTab, setActiveTab] = useState<"output" | "input">("output");
   const [isMobile, setIsMobile] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   const { 
     output, userInput, setUserInput, isAiSidebarOpen,
-    isSettingsOpen, isHistoryOpen, terminalPosition 
+    isSettingsOpen, isHistoryOpen, terminalPosition,
+    setCode, setLanguage, setTitle, setFileName, setVisibility, setSnippetId, resetPlayground 
   } = usePlaygroundStore();
 
   useEffect(() => {
-    setMounted(true);
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  if (!mounted) return null;
+  // MASTER INITIALIZATION LOGIC
+  useEffect(() => {
+    const initializeWorkspace = async () => {
+      // SCENARIO 1: Load existing snippet by ID from the URL
+      if (snippetIdParam) {
+        try {
+          const res = await fetch(`/api/snippets/${snippetIdParam}`);
+          const data = await res.json();
+          
+          if (data.success) {
+            setLanguage(data.data.language.toLowerCase());
+            setCode(data.data.content);
+            setTitle(data.data.title || "Untitled");
+            setFileName(data.data.fileName || "main"); // <-- Loading fileName
+            setVisibility(data.data.visibility);
+            setSnippetId(data.data.id);
+          } else {
+            toast.error("Snippet not found.");
+            resetPlayground();
+          }
+        } catch (err) {
+          toast.error("Failed to load snippet.");
+        }
+      } 
+      // SCENARIO 2: Clone from a share token
+      else if (cloneToken) {
+        try {
+          const res = await fetch(`/api/snippets/share/${cloneToken}`);
+          const data = await res.json();
+          
+          if (data.success) {
+            setLanguage(data.data.language.toLowerCase());
+            setCode(data.data.content);
+            setTitle(data.data.title || "Untitled");
+            setFileName(data.data.fileName || "main");
+            setSnippetId(null); // Keep null so it acts as a fresh clone
+            toast.success("Snippet cloned! Ready to edit.");
+          } else {
+            toast.error("Failed to clone snippet.");
+          }
+        } catch (err) {
+          toast.error("Failed to fetch clone data.");
+        }
+      }
+      // SCENARIO 3: Fresh start (No URL params)
+      else {
+        resetPlayground(); // Forces the "wipe on refresh" rule
+      }
+      
+      setIsInitializing(false); // Unlock the editor to mount
+    };
+
+    initializeWorkspace();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snippetIdParam, cloneToken]);
+
+  // Prevent aggressive autosave by hiding editor until data is populated
+  if (isInitializing) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0f] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-[#d0bcff]" />
+        <p className="text-sm font-mono text-white/50">Setting up workspace...</p>
+      </div>
+    );
+  }
 
   const effectivePosition = isMobile ? "bottom" : terminalPosition;
   const isVertical = effectivePosition === "bottom";
@@ -60,27 +133,36 @@ export default function PlaygroundLayout() {
   const ResizeHandle = <Separator className={`bg-white/5 hover:bg-[#d0bcff]/50 transition-colors ${isVertical ? "h-1.5 w-full cursor-row-resize" : "w-1.5 h-full cursor-col-resize"}`} />;
 
   return (
+    <div className="flex-1 flex overflow-hidden relative">
+      {isHistoryOpen && <HistorySidebar />}
+      
+      {/* Unconditional render so hidden state trick works for chat history */}
+      <AiSidebar />  
+      
+      {isSettingsOpen ? (
+        <div className="w-full h-full">
+          <PlaygroundSettings />
+        </div>
+      ) : (
+        <Group orientation={isVertical ? "vertical" : "horizontal"}>
+          {isTerminalFirst ? (
+            <>{TerminalPanel}{ResizeHandle}{EditorPanel}</>
+          ) : (
+            <>{EditorPanel}{ResizeHandle}{TerminalPanel}</>
+          )}
+        </Group>
+      )}
+    </div>
+  );
+}
+
+export default function PlaygroundLayout() {
+  return (
     <div className="w-full flex-1 flex flex-col bg-[#0f0d15] rounded-xl overflow-hidden border border-white/10 shadow-2xl relative">
       <PlaygroundHeader />
-      
-      <div className="flex-1 flex overflow-hidden relative">
-        {isHistoryOpen && <HistorySidebar />}
-        {isAiSidebarOpen && <AiSidebar/>  }
-        
-        {isSettingsOpen ? (
-          <div className="w-full h-full">
-            <PlaygroundSettings />
-          </div>
-        ) : (
-          <Group orientation={isVertical ? "vertical" : "horizontal"}>
-            {isTerminalFirst ? (
-              <>{TerminalPanel}{ResizeHandle}{EditorPanel}</>
-            ) : (
-              <>{EditorPanel}{ResizeHandle}{TerminalPanel}</>
-            )}
-          </Group>
-        )}
-      </div>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-[#0a0a0f]"><Loader2 className="w-8 h-8 animate-spin text-[#d0bcff]" /></div>}>
+        <PlaygroundContent />
+      </Suspense>
     </div>
   );
 }

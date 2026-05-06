@@ -42,6 +42,7 @@ export async function GET(req: NextRequest, { params }: Props) {
 
 const updateSnippetSchema = z.object({
   title: z.string().min(1, "Title cannot be empty").optional(),
+  fileName: z.string().min(1, "Filename cannot be empty").optional(),
   language: z.nativeEnum(Language).optional(),
   content: z.string().optional(),
   visibility: z.nativeEnum(Visibility).optional(),
@@ -71,7 +72,7 @@ export async function PUT(req: NextRequest, { params }: Props) {
     const isEditor = userCollab?.role === Role.EDITOR;
 
     if (!isOwner && !isCoOwner && !isEditor) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 403 });
+      return NextResponse.json({ success: false, message: "Unauthorized: You do not have edit permissions" }, { status: 403 });
     }
 
     const body = await req.json();
@@ -84,9 +85,16 @@ export async function PUT(req: NextRequest, { params }: Props) {
     let dataToUpdate = parsedData.data;
 
     if (isEditor && !isOwner && !isCoOwner) {
-      if (dataToUpdate.title || dataToUpdate.language || dataToUpdate.visibility) {
-         return NextResponse.json({ success: false, message: "Editors are only allowed to modify code content" }, { status: 403 });
+      const attemptedKeys = Object.keys(dataToUpdate);
+      const isTryingToChangeMetadata = attemptedKeys.some(key => key !== 'content' && dataToUpdate[key as keyof typeof dataToUpdate] !== undefined);
+
+      if (isTryingToChangeMetadata) {
+         return NextResponse.json({ 
+           success: false, 
+           message: "Editors are only allowed to modify code content" 
+         }, { status: 403 });
       }
+      
       dataToUpdate = { content: dataToUpdate.content };
     }
 

@@ -47,10 +47,10 @@ export const getOtpTemplate = (code: string, type: "REGISTER" | "PASSWORD_RESET"
   `;
 };
 
-export const getInviteTemplate = (senderName: string, snippetTitle: string) => {
+export const getInviteTemplate = (senderName: string, snippetTitle: string, invitationId: string) => {
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const logoUrl = `${baseUrl}/logo.png`;
-  const inviteUrl = `${baseUrl}/dashboard/invitations`;
+  const inviteUrl = `${baseUrl}/invitations/${invitationId}`;
 
   return `
     <div style="background-color: #050505; padding: 40px 20px; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; text-align: center;">

@@ -6,6 +6,7 @@ import {
   Users, Trash2, LogOut, Settings as SettingsIcon, 
   Globe, Lock, ShieldAlert, Monitor, Code2, UserMinus, Crown
 } from "lucide-react";
+import { useRouter } from "next/navigation"; 
 import { toast } from "sonner";
 import ConfirmModal from "../ui/ConfirmModal"; 
 import { CustomSelect } from "../ui/CustomSelect";
@@ -15,7 +16,7 @@ const THEME_OPTIONS = [
   { value: "runit-dark", label: "RunIt Dark" },
   { value: "runit-oled", label: "OLED Black" },
   { value: "vs-dark", label: "VS Dark (Standard)" },
-  { value: "vs", label: "VS Light" },
+  { value: "vs", label: "VS Light" }, 
   { value: "hc-black", label: "High Contrast Dark" },
   { value: "hc-light", label: "High Contrast Light" },
 ];
@@ -27,6 +28,7 @@ const TERMINAL_OPTIONS = [
 ];
 
 export default function PlaygroundSettings() {
+  const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const { 
     theme, setTheme, vimMode, setVimMode, terminalPosition, setTerminalPosition,
@@ -147,7 +149,7 @@ export default function PlaygroundSettings() {
 
   const handleRemoveCollaborator = async (collabId: string) => {
     try {
-      const res = await fetch(`/api/snippets/${snippetId}/collaborators/${collabId}`, { method: "DELETE" });
+      const res = await fetch(`/api/collaborations/${collabId}`, { method: "DELETE" });
       if (res.ok) {
         setCollaborators(collaborators.filter(c => c.id !== collabId));
         toast.success("Collaborator removed");
@@ -165,6 +167,7 @@ export default function PlaygroundSettings() {
         toast.success("Left snippet successfully");
         setLeaveModalOpen(false);
         resetPlayground();
+        router.push('/playground'); 
       }
     } catch {
       toast.error("Failed to leave snippet");
@@ -181,6 +184,7 @@ export default function PlaygroundSettings() {
         toast.success("Snippet deleted forever");
         setDeleteModalOpen(false);
         resetPlayground();
+        router.push('/playground'); 
       }
     } catch {
       toast.error("Failed to delete snippet");

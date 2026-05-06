@@ -14,8 +14,9 @@ export const GLOT_LANGUAGES = [
 
 interface PlaygroundState {
   snippetId: string | null;
+  title: string;
+  fileName: string; 
   selectedLanguage: string;
-  fileName: string;
   code: string;
   userInput: string;
   output: string;
@@ -31,6 +32,7 @@ interface PlaygroundState {
   terminalPosition: "right" | "left" | "bottom";
 
   setSnippetId: (id: string | null) => void;
+  setTitle: (title: string) => void; 
   setLanguage: (langId: string) => void;
   setAutoSave: (val: boolean) => void;
   setFileName: (name: string) => void;
@@ -52,8 +54,9 @@ export const usePlaygroundStore = create<PlaygroundState>()(
   persist(
     (set, get) => ({
       snippetId: null,
-      selectedLanguage: "python",
+      title: "Untitled",
       fileName: "main",
+      selectedLanguage: "python",
       code: 'print("welcome to RunIt")',
       userInput: "",
       output: "",
@@ -69,6 +72,8 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       terminalPosition: "right",
 
       setSnippetId: (id) => set({ snippetId: id }),
+      setTitle: (title) => set({ title }), 
+
       setLanguage: (langId) => {
         langId = langId.toLowerCase();
         const lang = GLOT_LANGUAGES.find((l) => l.id === langId);
@@ -88,11 +93,13 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       setIsHistoryOpen: (isOpen) => set({ isHistoryOpen: isOpen, isSettingsOpen: false, isAiSidebarOpen: false }),
       setVisibility: (vis) => set({ visibility: vis }),
       setTerminalPosition: (pos) => set({ terminalPosition: pos }),
+      
       resetPlayground: () => {
         const { selectedLanguage } = get();
         const defaultLang = GLOT_LANGUAGES.find((l) => l.id === selectedLanguage) || GLOT_LANGUAGES[0];
         set({
           snippetId: null,
+          title: "Untitled",
           fileName: selectedLanguage === "java" ? "Main" : "main",
           code: defaultLang.defaultCode,
           userInput: "",
@@ -107,9 +114,10 @@ export const usePlaygroundStore = create<PlaygroundState>()(
       name: "runit-playground-storage",
       partialize: (state) => ({ 
         snippetId: state.snippetId, 
+        title: state.title,
+        fileName: state.fileName,
         code: state.code, 
         selectedLanguage: state.selectedLanguage,
-        fileName: state.fileName,
         theme: state.theme,
         vimMode: state.vimMode,
         terminalPosition: state.terminalPosition

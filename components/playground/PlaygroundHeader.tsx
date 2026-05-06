@@ -7,15 +7,19 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation"; 
 import { usePlaygroundStore, GLOT_LANGUAGES } from "@/store/usePlaygroundStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import ShareModal from "./modals/ShareModal";
 import CommitModal from "./modals/CommitModal";
 import ConfirmModal from "../ui/ConfirmModal"; 
+import SaveSnippetModal from "./modals/SaveSnippetModal"; 
 import { GithubIcon } from "../ui/Icons";
 
 export default function PlaygroundHeader() {
+  const router = useRouter();
   const { isAuthenticated, hasGithubToken } = useAuthStore();
+  
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPushing, setIsPushing] = useState(false);
@@ -23,12 +27,13 @@ export default function PlaygroundHeader() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [commitModalOpen, setCommitModalOpen] = useState(false);
   const [newSnippetModalOpen, setNewSnippetModalOpen] = useState(false);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
 
   const { 
-    snippetId, selectedLanguage, setLanguage, fileName, setFileName, 
+    snippetId, title, setTitle, selectedLanguage, setLanguage, fileName, setFileName, 
     code, userInput, setOutput, isExecuting, setIsExecuting,
     isSettingsOpen, setIsSettingsOpen, isHistoryOpen, setIsHistoryOpen, visibility,
-    resetPlayground, isAiSidebarOpen ,setIsAiSidebarOpen
+    resetPlayground, isAiSidebarOpen ,setIsAiSidebarOpen, setSnippetId
   } = usePlaygroundStore();
 
   const currentLang = GLOT_LANGUAGES.find(l => l.id === selectedLanguage);
@@ -56,20 +61,40 @@ export default function PlaygroundHeader() {
     toast.success("File downloaded!");
   };
 
-  const handleSave = async () => {
+  const handleSave = async (providedTitle?: string) => {
     if (!isAuthenticated) return toast.info("Please log in to save snippets.");
+
+    if (!snippetId && !providedTitle && title === "Untitled") {
+      setSaveModalOpen(true);
+      return;
+    }
+
+    const finalTitle = providedTitle || title;
     setIsSaving(true);
+    
     try {
       const res = await fetch(snippetId ? `/api/snippets/${snippetId}` : `/api/snippets`, {
         method: snippetId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: fileName, content: code, language: selectedLanguage.toUpperCase() })
+        body: JSON.stringify({ 
+          title: finalTitle, 
+          fileName: fileName, 
+          content: code, 
+          language: selectedLanguage.toUpperCase() 
+        })
       });
       const data = await res.json();
       
       if (data.success) {
-        if (!snippetId && data.data.id) usePlaygroundStore.getState().setSnippetId(data.data.id);
+        if (providedTitle) setTitle(providedTitle);
+        
+        if (!snippetId && data.data.id) {
+          setSnippetId(data.data.id);
+          router.push(`/playground/${data.data.id}`); 
+        }
+        
         toast.success("Snippet saved!");
+        setSaveModalOpen(false);
       } else {
         toast.error(data.message);
       }
@@ -124,6 +149,7 @@ export default function PlaygroundHeader() {
   const handleNewSnippet = () => {
     resetPlayground();
     setNewSnippetModalOpen(false);
+    router.push('/playground'); 
     toast.success("Started a new snippet!");
   };
 
@@ -149,6 +175,12 @@ export default function PlaygroundHeader() {
     <>
       <ShareModal isOpen={shareModalOpen} onClose={() => setShareModalOpen(false)} />
       <CommitModal isOpen={commitModalOpen} onClose={() => setCommitModalOpen(false)} />
+      <SaveSnippetModal 
+        isOpen={saveModalOpen} 
+        onClose={() => setSaveModalOpen(false)} 
+        onSave={handleSave} 
+        isLoading={isSaving} 
+      />
       
       <ConfirmModal 
         isOpen={newSnippetModalOpen} 
@@ -166,7 +198,6 @@ export default function PlaygroundHeader() {
         {/* Left Area */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           
-          {/* Mac-style Window Controls */}
           <div className="hidden sm:flex items-center gap-2 pr-4 border-r border-white/10 mr-2">
             <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
             <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
@@ -187,6 +218,7 @@ export default function PlaygroundHeader() {
             </button>
           )}
 
+          {/* The File Name input remains unchanged as requested */}
           <div className="flex items-center bg-white/5 border border-white/10 rounded px-2 py-1 focus-within:border-[#d0bcff]/50 transition-colors">
             <input value={fileName} onChange={(e) => setFileName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))} className="bg-transparent text-xs sm:text-sm font-mono text-white outline-none w-16 sm:w-24 text-right" />
             <span className="text-xs sm:text-sm font-mono text-[#d0bcff]/60">.{currentLang?.extension}</span>
@@ -221,7 +253,8 @@ export default function PlaygroundHeader() {
                 <FilePlus size={16} /> <span className="hidden lg:inline">New</span>
               </button>
 
-              <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white px-2 py-1.5 rounded hover:bg-white/5">
+              {/* Save Button */}
+              <button onClick={() => handleSave()} disabled={isSaving} className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white px-2 py-1.5 rounded hover:bg-white/5">
                 {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} <span className="hidden md:inline">Save</span>
               </button>
               
