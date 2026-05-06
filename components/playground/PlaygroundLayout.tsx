@@ -15,7 +15,6 @@ function PlaygroundContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   
-  // Extract URL parameters
   const snippetIdParam = params?.snippetId as string;
   const cloneToken = searchParams?.get("clone");
 
@@ -24,9 +23,8 @@ function PlaygroundContent() {
   const [isInitializing, setIsInitializing] = useState(true);
   
   const { 
-    output, userInput, setUserInput, isAiSidebarOpen,
-    isSettingsOpen, isHistoryOpen, terminalPosition,
-    setCode, setLanguage, setTitle, setFileName, setVisibility, setSnippetId, resetPlayground 
+    output, userInput, setUserInput, isSettingsOpen, 
+    isHistoryOpen, terminalPosition, resetPlayground 
   } = usePlaygroundStore();
 
   useEffect(() => {
@@ -36,63 +34,62 @@ function PlaygroundContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // MASTER INITIALIZATION LOGIC
   useEffect(() => {
     const initializeWorkspace = async () => {
-      // SCENARIO 1: Load existing snippet by ID from the URL
       if (snippetIdParam) {
         try {
           const res = await fetch(`/api/snippets/${snippetIdParam}`);
           const data = await res.json();
           
           if (data.success) {
-            setLanguage(data.data.language.toLowerCase());
-            setCode(data.data.content);
-            setTitle(data.data.title || "Untitled");
-            setFileName(data.data.fileName || "main"); // <-- Loading fileName
-            setVisibility(data.data.visibility);
-            setSnippetId(data.data.id);
+            usePlaygroundStore.setState({
+              selectedLanguage: data.data.language.toLowerCase(),
+              code: data.data.content,
+              title: data.data.title || "Untitled",
+              fileName: data.data.fileName || "main",
+              visibility: data.data.visibility,
+              snippetId: data.data.id
+            });
           } else {
             toast.error("Snippet not found.");
             resetPlayground();
           }
-        } catch (err) {
+        } catch {
           toast.error("Failed to load snippet.");
         }
       } 
-      // SCENARIO 2: Clone from a share token
       else if (cloneToken) {
         try {
           const res = await fetch(`/api/snippets/share/${cloneToken}`);
           const data = await res.json();
           
           if (data.success) {
-            setLanguage(data.data.language.toLowerCase());
-            setCode(data.data.content);
-            setTitle(data.data.title || "Untitled");
-            setFileName(data.data.fileName || "main");
-            setSnippetId(null); // Keep null so it acts as a fresh clone
+            usePlaygroundStore.setState({
+              selectedLanguage: data.data.language.toLowerCase(),
+              code: data.data.content,
+              title: data.data.title || "Untitled",
+              fileName: data.data.fileName || "main",
+              snippetId: null
+            });
             toast.success("Snippet cloned! Ready to edit.");
           } else {
             toast.error("Failed to clone snippet.");
           }
-        } catch (err) {
+        } catch {
           toast.error("Failed to fetch clone data.");
         }
       }
-      // SCENARIO 3: Fresh start (No URL params)
       else {
-        resetPlayground(); // Forces the "wipe on refresh" rule
+        resetPlayground(); 
       }
       
-      setIsInitializing(false); // Unlock the editor to mount
+      setIsInitializing(false); 
     };
 
     initializeWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snippetIdParam, cloneToken]);
 
-  // Prevent aggressive autosave by hiding editor until data is populated
   if (isInitializing) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0f] gap-3">
@@ -135,8 +132,6 @@ function PlaygroundContent() {
   return (
     <div className="flex-1 flex overflow-hidden relative">
       {isHistoryOpen && <HistorySidebar />}
-      
-      {/* Unconditional render so hidden state trick works for chat history */}
       <AiSidebar />  
       
       {isSettingsOpen ? (
