@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Code2 } from "lucide-react";
 import Link from "next/link";
-import { codeSnippets } from "@/lib/contants";
+import { codeSnippets } from "@/lib/constants";
 
 export default function HeroSection() {
   const [snippetIndex, setSnippetIndex] = useState(0);

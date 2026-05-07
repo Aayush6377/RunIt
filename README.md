@@ -11,10 +11,12 @@
 
 <br />
 
-<video src="./public/demo.mp4" autoplay loop muted playsinline width="100%" style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></video>
+<a href="https://youtu.be/hcZ9vot1BTM" target="_blank">
+  <img src="https://img.youtube.com/vi/hcZ9vot1BTM/maxresdefault.jpg" alt="RunIt Video Demo" width="100%" style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
+</a>
 
 <br />
-<i>High-performance, real-time code execution wrapped in a glassmorphic UI.</i>
+<i>High-performance, real-time code execution wrapped in a glassmorphic UI. <br/><b>Click the image above to watch the demo!</b></i>
 <br /><br />
 
 </div>
